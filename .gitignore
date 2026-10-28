@@ -1,0 +1,9 @@
+# Python
+__pycache__/
+*.pyc
+
+# Spark
+spark-warehouse/
+metastore_db/
+derby.log
+checkpoint/
