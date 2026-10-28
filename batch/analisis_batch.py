@@ -176,20 +176,7 @@ def personas_por(*columnas, excluir_nr=True, orden="personas"):
     return resultado.orderBy(*columnas)
 
 
-# --- 4.1 Estadísticas de edad ---
-print("\n4.1 Estadísticas de edad")
-df.select("edad").summary("count", "mean", "stddev", "min", "25%", "50%", "75%", "max").show()
-
-# --- 4.2 Calidad de datos: % de valores no reportados ---
-print("4.2 Porcentaje de valores NO REPORTADO por columna")
-calidad = df.select([
-    F.round(F.avg(F.when(F.col(c) == NO_REPORTADO, 1).otherwise(0)) * 100, 2).alias(c)
-    for c in ["area_conocimiento", "nivel_academico", "estado_civil",
-              "sexo", "etnia", "pais_nacimiento"]
-])
-calidad.show(truncate=False)
-
-# --- 4.3 Distribuciones ---
+# --- 4.1 Distribuciones ---
 distribuciones = {
     "top10_paises_residencia": personas_por("pais").limit(10),
     "sexo": personas_por("sexo"),
@@ -205,12 +192,12 @@ distribuciones = {
 
 resultados = {}
 for nombre, tabla in distribuciones.items():
-    print(f"\n4.3 {nombre}")
+    print(f"\n4.1 {nombre}")
     resultados[nombre] = tabla.collect()
     tabla.show(20, truncate=False)
 
-# --- 4.4 Mismo cálculo con RDD (map + reduceByKey + takeOrdered) ---
-print("\n4.4 Top 5 países de residencia usando RDD")
+# --- 4.2 Mismo cálculo con RDD (map + reduceByKey + takeOrdered) ---
+print("\n4.2 Top 5 países de residencia usando RDD")
 top_paises_rdd = (df.rdd
                   .map(lambda fila: (fila["pais"], fila["cantidad_personas"]))
                   .reduceByKey(lambda a, b: a + b)
