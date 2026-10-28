@@ -91,8 +91,7 @@ procesamiento-de-datos-con-apache-spark/
 │   ├── kafka_producer.py            # Envía registros del dataset (desde HDFS) a Kafka
 │   └── spark_streaming_consumer.py  # Consume el topic y calcula estadísticas por ventana
 └── resultados/                      # Se genera al ejecutar el batch
-    ├── graficos/                    # .png
-    └── tablas/                      # .csv
+    └── graficos/                    # .png
 ```
 
 ---
@@ -142,7 +141,7 @@ Por defecto el script lee `hdfs://localhost:9000/Tarea3/colombianos_exterior.csv
 | 2. Limpieza | Renombra las columnas, normaliza el texto, convierte los tipos, agrupa los faltantes (`SIN INFORMACIÓN`, `NO INDICA`, `DESCONOCIDO`, etc.) en `NO REPORTADO`, filtra las edades al rango 25–40 (descartando también valores inválidos como -1 o 140) y elimina duplicados |
 | 3. Transformación | Convierte la fecha `AAAA-MM` en año y mes descartando fechas inválidas como 1900, separa el lugar de nacimiento en país, departamento y ciudad, unifica las variantes de Bogotá y crea el rango de edad |
 | 4. EDA | Calcula estadísticas de edad, el porcentaje de datos no reportados y las distribuciones por país, sexo, nivel académico, área, estado civil, año y departamento, e incluye el top de países calculado con RDD (`map`, `reduceByKey`, `takeOrdered`) |
-| 5. Visualización | Guarda gráficos en `resultados/graficos/` y tablas en `resultados/tablas/` |
+| 5. Visualización | Guarda 7 gráficos `.png` en `resultados/graficos/` |
 
 ---
 

@@ -7,7 +7,6 @@
 
 import os
 import sys
-import csv
 
 import matplotlib
 matplotlib.use("Agg")  # sin ventana gráfica (VM por SSH)
@@ -26,7 +25,6 @@ RUTA_HDFS = "hdfs://localhost:9000/Tarea3/colombianos_exterior.csv.gz"
 RUTA_DATOS = sys.argv[1] if len(sys.argv) > 1 else RUTA_HDFS
 PARTICIONES = 4
 DIR_GRAFICOS = os.path.join(BASE_DIR, "..", "resultados", "graficos")
-DIR_TABLAS = os.path.join(BASE_DIR, "..", "resultados", "tablas")
 
 EDAD_MIN, EDAD_MAX = 25, 40
 ANIO_MIN_VALIDO = 2013  # inicio del registro consular en línea
@@ -44,7 +42,6 @@ CATEGORICAS = ["pais", "ciudad_residencia", "oficina_consular",
                "sexo", "etnia", "lugar_nacimiento"]
 
 os.makedirs(DIR_GRAFICOS, exist_ok=True)
-os.makedirs(DIR_TABLAS, exist_ok=True)
 
 # Ruta local (si se pasa por argumento) con prefijo explícito file://
 if "://" not in RUTA_DATOS:
@@ -179,14 +176,6 @@ def personas_por(*columnas, excluir_nr=True, orden="personas"):
     return resultado.orderBy(*columnas)
 
 
-def guardar_csv(nombre, columnas, filas):
-    """Exporta una tabla de resultados a resultados/tablas."""
-    with open(os.path.join(DIR_TABLAS, f"{nombre}.csv"), "w", newline="", encoding="utf-8") as f:
-        escritor = csv.writer(f)
-        escritor.writerow(columnas)
-        escritor.writerows(filas)
-
-
 # --- 4.1 Estadísticas de edad ---
 print("\n4.1 Estadísticas de edad")
 df.select("edad").summary("count", "mean", "stddev", "min", "25%", "50%", "75%", "max").show()
@@ -200,8 +189,8 @@ calidad = df.select([
 ])
 calidad.show(truncate=False)
 
-# --- 4.3 Tablas de distribución ---
-tablas = {
+# --- 4.3 Distribuciones ---
+distribuciones = {
     "top10_paises_residencia": personas_por("pais").limit(10),
     "sexo": personas_por("sexo"),
     "rango_edad_sexo": personas_por("rango_edad", "sexo", orden="columnas"),
@@ -215,11 +204,10 @@ tablas = {
 }
 
 resultados = {}
-for nombre, tabla in tablas.items():
+for nombre, tabla in distribuciones.items():
     print(f"\n4.3 {nombre}")
     resultados[nombre] = tabla.collect()
     tabla.show(20, truncate=False)
-    guardar_csv(nombre, tabla.columns, resultados[nombre])
 
 # --- 4.4 Mismo cálculo con RDD (map + reduceByKey + takeOrdered) ---
 print("\n4.4 Top 5 países de residencia usando RDD")
@@ -232,9 +220,9 @@ for pais, personas in top_paises_rdd:
 
 
 # =====================================================================
-# 5. VISUALIZACIÓN Y EXPORTACIÓN DE RESULTADOS
+# 5. VISUALIZACIÓN
 # =====================================================================
-titulo("5. VISUALIZACIÓN Y RESULTADOS")
+titulo("5. VISUALIZACIÓN")
 
 
 def grafico_barras(nombre, filas, columna, titulo_grafico, horizontal=True):
@@ -298,7 +286,6 @@ plt.savefig(os.path.join(DIR_GRAFICOS, "rango_edad_sexo.png"), dpi=120)
 plt.close()
 
 print(f"Gráficos guardados en : {os.path.abspath(DIR_GRAFICOS)}")
-print(f"Tablas guardadas en   : {os.path.abspath(DIR_TABLAS)}")
 
 
 # =====================================================================
