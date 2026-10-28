@@ -21,13 +21,13 @@ El proyecto se ejecuta en la **máquina virtual Big Data del curso** (Ubuntu 22.
 | Java (OpenJDK) | 11 | Requerido por Hadoop, Spark y Kafka |
 | Python | 3.10 o superior | Scripts del proyecto |
 | Hadoop (HDFS) | 3.x, en `hdfs://localhost:9000` (interfaz web: puerto `9870`) | Almacenar el dataset |
-| Apache Spark | **3.5.3** (Scala 2.12) | Procesamiento batch y streaming |
+| Apache Spark | **3.5.8** (Scala 2.12) | Procesamiento batch y streaming |
 | Apache Kafka | **3.9.2**, compilación para Scala 2.12 (`kafka_2.12-3.9.2`), con ZooKeeper incluido | Cola de mensajes en tiempo real |
-| Conector Spark–Kafka | `org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.3` | Permite a Spark leer de Kafka, lo descarga `spark-submit --packages` la primera vez, por lo que necesita internet |
-| kafka-python | 2.0.x | Productor de Kafka en Python |
+| Conector Spark–Kafka | `org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.8` | Permite a Spark leer de Kafka, lo descarga `spark-submit --packages` la primera vez, por lo que necesita internet |
+| kafka-python | 2.0 o superior | Productor de Kafka en Python |
 | matplotlib | cualquiera reciente | Gráficos del análisis batch |
 
-**Compatibilidad:** el sufijo `2.12` debe ser el mismo en Kafka (`kafka_2.12-3.9.2`) y en el conector (`spark-sql-kafka-0-10_2.12`), ya que corresponde a la versión de Scala con la que está compilado Spark 3.5.3, y la versión final del conector (`3.5.3`) debe coincidir con la de Spark.
+**Compatibilidad:** el sufijo `2.12` debe ser el mismo en Kafka (`kafka_2.12-3.9.2`) y en el conector (`spark-sql-kafka-0-10_2.12`), ya que corresponde a la versión de Scala con la que está compilado Spark 3.5.8, y la versión final del conector (`3.5.8`) debe coincidir con la de Spark.
 
 ### Instalación de lo que falta
 
@@ -52,7 +52,7 @@ git --version
 java -version                  # 11.x
 python3 --version
 hadoop version                 # 3.x
-spark-submit --version         # 3.5.3, Scala 2.12
+spark-submit --version         # 3.5.8, Scala 2.12
 ls /opt/Kafka/kafka_2.12-3.9.2 # bin/  config/  libs/ ...
 ```
 
@@ -88,7 +88,7 @@ procesamiento-de-datos-con-apache-spark/
 ├── batch/
 │   └── analisis_batch.py            # Carga, limpieza, transformación, EDA y gráficos
 ├── streaming/
-│   ├── kafka_producer.py            # Genera registros y los envía a Kafka
+│   ├── kafka_producer.py            # Envía registros del dataset (desde HDFS) a Kafka
 │   └── spark_streaming_consumer.py  # Consume el topic y calcula estadísticas por ventana
 └── resultados/                      # Se genera al ejecutar el batch
     ├── graficos/                    # .png
@@ -148,16 +148,18 @@ Por defecto el script lee `hdfs://localhost:9000/Tarea3/colombianos_exterior.csv
 
 ## 2. Procesamiento en tiempo real (Kafka + Spark Streaming)
 
-Sigue el esquema del Anexo 3, adaptado al caso de registros consulares:
+Sigue el esquema del Anexo 3, pero en lugar de datos inventados usa registros reales del mismo dataset guardado en HDFS:
 
 ```
-kafka_producer.py ──► Kafka (topic: registros_consulares) ──► spark_streaming_consumer.py ──► consola
+HDFS (colombianos_exterior.csv.gz) ──► kafka_producer.py ──► Kafka (topic: registros_consulares) ──► spark_streaming_consumer.py ──► consola
 ```
 
-- **`kafka_producer.py`**: genera un registro consular por segundo (país, sexo, edad, nivel académico, estado civil y `timestamp`) con proporciones parecidas a las del dataset real, y lo envía al topic.
-- **`spark_streaming_consumer.py`**: se suscribe al topic y, cada 10 segundos, muestra estos resultados por ventanas de 1 minuto:
-  - Registros y edad promedio por país.
-  - Registros y edad promedio por sexo.
+- **`kafka_producer.py`**: recibe por una tubería (`|`) filas tomadas al azar del dataset en HDFS y las envía al topic a razón de 5 por segundo, simulando la llegada de nuevas inscripciones consulares.
+- **`spark_streaming_consumer.py`**: se suscribe al topic, convierte los tipos, filtra el rango de 25 a 40 años y normaliza los valores faltantes, igual que el batch, y cada 10 segundos muestra estos resultados por ventanas de 1 minuto:
+  - Registros, personas y edad promedio por país.
+  - Registros, personas y edad promedio por sexo.
+
+Hadoop debe estar encendido y el dataset cargado en `/Tarea3` (pasos 1 y 2 del procesamiento en batch).
 
 ### Pasos
 
@@ -173,16 +175,26 @@ exit
 
 El topic solo se crea la primera vez.
 
-**Terminal 1: iniciar el productor**
+**Terminal 1: iniciar el productor con datos desde HDFS** (desde la carpeta del repositorio)
 
 ```bash
-python3 streaming/kafka_producer.py
+su - hadoop -c "hdfs dfs -cat /Tarea3/colombianos_exterior.csv.gz" | zcat | tail -n +2 | shuf -n 5000 | python3 streaming/kafka_producer.py
 ```
+
+| Comando | Qué hace |
+|---|---|
+| `su - hadoop -c "hdfs dfs -cat ..."` | Lee el dataset desde HDFS con el usuario `hadoop` (pide su contraseña), ya que `vboxuser` no tiene el comando `hdfs` |
+| `zcat` | Lo descomprime |
+| `tail -n +2` | Quita la fila de encabezado |
+| `shuf -n 5000` | Toma 5.000 filas al azar, ya que el archivo viene ordenado por país |
+| `python3 streaming/kafka_producer.py` | Envía esas filas al topic, 5 por segundo (unos 17 minutos en total) |
+
+Solo la lectura de HDFS se ejecuta como `hadoop`, el resto de la tubería y el productor corren como `vboxuser`, que es quien tiene instalado `kafka-python`.
 
 **Terminal 2 (nueva sesión de PuTTY): iniciar el consumidor**
 
 ```bash
-spark-submit --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.3 streaming/spark_streaming_consumer.py
+spark-submit --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.8 streaming/spark_streaming_consumer.py
 ```
 
 Primero se inicia el productor y luego el consumidor, cada proceso se detiene con `Ctrl+C`, y mientras corre la interfaz de Spark en `http://<IP-de-la-VM>:4040` muestra Jobs, Stages, Environment, Executors y la pestaña Structured Streaming.

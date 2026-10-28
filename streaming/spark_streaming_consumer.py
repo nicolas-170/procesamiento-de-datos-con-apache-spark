@@ -2,7 +2,7 @@
 #  Tarea 3 - Consumidor Spark Streaming
 #  Lee el topic "registros_consulares", limpia los registros y calcula
 #  estadísticas en ventanas de 1 minuto.
-#  Uso: spark-submit --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.3 \
+#  Uso: spark-submit --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.8 \
 #       streaming/spark_streaming_consumer.py
 # =====================================================================
 
