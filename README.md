@@ -182,23 +182,30 @@ sudo su
 exit
 ```
 
-El topic solo se crea la primera vez.
+El topic se crea la primera vez, y de nuevo si se reinicia la VM, ya que Kafka guarda sus datos en `/tmp`.
 
-**Terminal 1: iniciar el productor con datos desde HDFS** (desde la carpeta del repositorio)
+**Terminal 1: tomar una muestra del dataset desde HDFS** (desde la carpeta del repositorio)
 
 ```bash
-su - hadoop -c "hdfs dfs -cat /Tarea3/colombianos_exterior.csv.gz" | zcat | tail -n +2 | shuf -n 5000 | python3 streaming/kafka_producer.py
+su - hadoop -c "/home/hadoop/hadoop/bin/hdfs dfs -cat /Tarea3/colombianos_exterior.csv.gz" | zcat | tail -n +2 | shuf -n 5000 > /tmp/muestra.csv
+wc -l /tmp/muestra.csv           # debe decir 5000
 ```
 
 | Comando | Qué hace |
 |---|---|
-| `su - hadoop -c "hdfs dfs -cat ..."` | Lee el dataset desde HDFS con el usuario `hadoop` (pide su contraseña), ya que `vboxuser` no tiene el comando `hdfs` |
+| `su - hadoop -c "/home/hadoop/hadoop/bin/hdfs dfs -cat ..."` | Lee el dataset desde HDFS con el usuario `hadoop` (pide su contraseña), ya que `vboxuser` no tiene el comando `hdfs`, y se usa la ruta completa porque `su -c` no carga la ruta de Hadoop |
 | `zcat` | Lo descomprime |
 | `tail -n +2` | Quita la fila de encabezado |
 | `shuf -n 5000` | Toma 5.000 filas al azar, ya que el archivo viene ordenado por país |
-| `python3 streaming/kafka_producer.py` | Envía esas filas al topic, 5 por segundo (unos 17 minutos en total) |
+| `> /tmp/muestra.csv` | Guarda la muestra en un archivo temporal |
 
-Solo la lectura de HDFS se ejecuta como `hadoop`, el resto de la tubería y el productor corren como `vboxuser`, que es quien tiene instalado `kafka-python`.
+**Terminal 1: iniciar el productor**
+
+```bash
+python3 streaming/kafka_producer.py < /tmp/muestra.csv
+```
+
+El productor envía las filas de la muestra al topic a razón de 5 por segundo (unos 17 minutos en total), y corre como `vboxuser`, que es quien tiene instalado `kafka-python`.
 
 **Terminal 2 (nueva sesión de PuTTY): iniciar el consumidor**
 

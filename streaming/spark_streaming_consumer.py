@@ -24,7 +24,11 @@ NO_REPORTADO = "NO REPORTADO"
 VALORES_FALTANTES = ["", "SIN INFORMACIÓN", "NO INDICA", "DESCONOCIDO",
                      "(NO REGISTRA)", "SIN ETNIA REGISTRADA"]
 
-spark = SparkSession.builder.appName("StreamingRegistrosConsulares").getOrCreate()
+# 4 particiones en lugar de 200 (por defecto): lotes más rápidos en la VM
+spark = (SparkSession.builder
+         .appName("StreamingRegistrosConsulares")
+         .config("spark.sql.shuffle.partitions", "4")
+         .getOrCreate())
 spark.sparkContext.setLogLevel("WARN")
 
 # Esquema del JSON que envía el productor (mismas columnas del dataset)

@@ -4,8 +4,9 @@
 #  estándar y las envía al topic "registros_consulares", simulando
 #  la llegada de registros en tiempo real.
 #  Uso:
-#    su - hadoop -c "hdfs dfs -cat /Tarea3/colombianos_exterior.csv.gz" | zcat | tail -n +2 \
-#      | shuf -n 5000 | python3 streaming/kafka_producer.py
+#    su - hadoop -c "/home/hadoop/hadoop/bin/hdfs dfs -cat /Tarea3/colombianos_exterior.csv.gz" \
+#      | zcat | tail -n +2 | shuf -n 5000 > /tmp/muestra.csv
+#    python3 streaming/kafka_producer.py < /tmp/muestra.csv
 # =====================================================================
 
 import sys
@@ -31,8 +32,7 @@ COLUMNAS = ["pais", "codigo_iso", "ciudad_residencia", "oficina_consular",
 
 # Sin datos por la tubería no hay nada que enviar
 if sys.stdin.isatty():
-    sys.exit("Uso: su - hadoop -c \"hdfs dfs -cat /Tarea3/colombianos_exterior.csv.gz\" | zcat | tail -n +2 "
-             "| shuf -n 5000 | python3 streaming/kafka_producer.py")
+    sys.exit("Uso: python3 streaming/kafka_producer.py < /tmp/muestra.csv")
 
 sys.stdin.reconfigure(encoding="utf-8", errors="ignore")
 
