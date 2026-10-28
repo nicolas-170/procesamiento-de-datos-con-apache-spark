@@ -133,6 +133,16 @@ spark-submit batch/analisis_batch.py
 
 Por defecto el script lee `hdfs://localhost:9000/Tarea3/colombianos_exterior.csv.gz`, y mientras se ejecuta la interfaz de Spark está disponible en `http://<IP-de-la-VM>:4040`.
 
+**4. Ver los gráficos generados**
+
+Como la VM no tiene entorno gráfico, las imágenes se publican con el servidor web de Python en el puerto 80 (desde la carpeta del repositorio):
+
+```bash
+sudo python3 -m http.server 80 --directory resultados/graficos
+```
+
+En el navegador de Windows se abre `http://<IP-de-la-VM>` y se hace clic en cada `.png` para verlo, el servidor se detiene con `Ctrl+C`.
+
 ### Qué hace el script
 
 | Etapa | Qué hace |
